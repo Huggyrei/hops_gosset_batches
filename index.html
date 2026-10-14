@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gosset's problem: hop batch investigation</title>
+<style>
+:root{--bg:#f4f7fb;--panel:#fff;--ink:#18232d;--muted:#66737d;--blue:#1769aa;--red:#c93a43;--green:#2f855a;--amber:#d69e2e;--line:#d6dde3}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif} main{max-width:1280px;margin:auto;padding:18px} h1{margin:0 0 6px;text-align:center;font-size:2rem}.lead{text-align:center;color:var(--muted);margin:0 0 16px}.grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:16px;align-items:start}.inline-summary{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.panel{background:#fff;border-radius:14px;padding:18px;box-shadow:0 3px 12px #00000016}.batch-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.reveal-bar{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px}.reveal-bar input{padding:8px;border:1px solid var(--line);border-radius:7px;width:145px}.reveal-bar label{font-size:.9rem}.reveal-bar span{font-size:.9rem;color:var(--muted)}.tab{background:#e9eef3;color:#1d2a34}.tab.active{background:#333;color:#fff}.question{font-size:1.18rem;font-weight:700}.spec{background:#eef6ff;border-left:5px solid var(--blue);padding:10px 12px;margin:10px 0 14px}.data-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.data{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#f2f4f6;border:1px solid var(--line);padding:9px;border-radius:8px;flex:1;min-width:250px}.btn,button{border:0;border-radius:8px;padding:9px 14px;background:#333;color:#fff;cursor:pointer;font-size:.98rem}.secondary{background:#586773}.decision-strip{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:9px;background:#f2f4f6;margin:10px 0 14px;border-left:5px solid #89949c}.decision-strip.accepted{background:#f0fff4;border-left-color:var(--green)}.decision-strip.rejected{background:#fff5f5;border-left-color:var(--red)}.decision-strip button.selected.accept{background:var(--green)}.decision-strip button.selected.reject{background:var(--red)}.decision-strip span{font-weight:700}label{font-weight:700}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}.field{padding:10px;border:1px solid var(--line);border-radius:9px}.field input{width:100%;font-size:1.05rem;margin-top:6px;padding:7px}.equation{text-align:center;font-size:1.25rem;margin:8px 0 5px;min-height:31px}.hint{text-align:center;color:var(--muted);font-size:.9rem}.plot-wrap{height:270px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}.plot-wrap canvas{width:100%;height:100%;display:block}.blank{display:grid;place-items:center;height:100%;color:#596875;text-align:center;padding:30px;font-size:1.05rem}.calc{margin-top:16px}.calc textarea{width:100%;height:82px;padding:8px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.summary{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}.stat{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}.stat b{display:block;font-size:1.08rem;margin-top:3px}.status{min-height:24px;margin-top:10px;color:var(--muted)}.note{font-size:.86rem;color:var(--muted);margin-top:8px}@media(max-width:850px){.grid{grid-template-columns:1fr}.summary{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body><main>
+<h1>Can you keep this batch of hops?</h1>
+<p class="lead">The target mean is 8%. You have only a sample from each batch. Decide whether the batch is consistent with the specification.</p>
+<div class="batch-tabs" id="tabs"></div>
+<div class="reveal-bar">
+<label for="revealPassword">Discussion password:</label>
+<input id="revealPassword" type="password" autocomplete="off" placeholder="Password">
+<button id="revealBtn">Reveal true distributions</button>
+<span id="revealMessage"></span>
+</div>
+<div class="grid">
+<section class="panel left-panel">
+ <div class="question" id="batchTitle"></div>
+ <div class="decision-strip" id="decisionStrip">
+ <strong>Your decision:</strong>
+ <button class="accept" data-decision="accept">Accept batch</button>
+ <button class="reject" data-decision="reject">Reject batch</button>
+ <span id="decisionText">No decision yet</span>
+</div>
+ <p>Here are the 15 measurements from this batch:</p>
+ <div class="data-row"><div class="data" id="sampleText"></div></div>
+<div class="calc inline-summary">
+ <h2 style="margin-top:0">Sample statistics</h2>
+ <p>When you are ready, generate a summary of the sample shown for this batch.</p>
+ <button id="summarise">Generate sample summary</button>
+ <div class="summary" id="summary">
+   <div class="stat">n<b>–</b></div><div class="stat">Mean<b>–</b></div><div class="stat">Median<b>–</b></div><div class="stat">Std. dev.<b>–</b></div><div class="stat">Skewness<b>–</b></div><div class="stat">Kurtosis<b>–</b></div>
+ </div>
+ <p class="note">Standard deviation uses the sample formula (n−1). Skewness and kurtosis use bias-corrected sample estimators; kurtosis is reported as excess kurtosis.</p>
+</div>
+</section>
+<section class="panel right-panel">
+ <div class="fields">
+   <div class="field"><label>Population mean μ (%)</label><input id="mu" type="number" step="0.01" value="8" readonly></div>
+   <div class="field"><label>Population standard deviation σ (%)</label><input id="sigma" type="number" step="0.01" min="0.001" placeholder="What will you use?"></div>
+ </div>
+ <div class="equation" id="equation">X̄ ~ N(8.00, (? / √15)²)</div>
+ <div id="truth" style="display:none;background:#f0fff4;border-left:5px solid var(--green);padding:9px 11px;margin:8px 0"></div>
+ <div class="hint">The red regions mark a two-sided 5% significance level. Use the sample statistics to work out where your sample mean lies.</div>
+ <div class="plot-wrap" id="plotWrap"><div class="blank">Enter a value for σ to draw the sampling distribution and significance regions.</div></div>
+ <div class="status" id="status"></div>
+</section>
+
+</div>
+</main>
+<script>
+const batches=[
+ {name:'Batch A',trueSigma:1.00,data:[8.96,7.98,7.74,8.23,7.46,7.19,6.95,7.25,9.64,7.98,9.25,8.27,10.38,6.6,5.22]},
+ {name:'Batch B',trueSigma:1.00,data:[10.51,10.87,7.51,7.92,10.33,8.06,9.21,9.22,7.57,10,9.36,9.53,10.09,7.79,9.8]},
+ {name:'Batch C',trueSigma:1.00,data:[7.51,8.25,8.78,7.48,8.22,7.86,8.09,7.33,7.52,6.9,6.18,7.82,6.92,6.97,7.21]},
+ {name:'Batch D',trueSigma:1.00,data:[7.84,9.68,9.97,8.08,6.88,6.32,10.28,7.02,8.38,10.97,7.82,9,10.06,8.93,8.37]}
+];
+let current=0,decisions={},truthRevealed=false,batchState=batches.map(()=>({sigma:'',summary:false}));
+const $=id=>document.getElementById(id);
+function mean(a){return a.reduce((x,y)=>x+y,0)/a.length}
+function median(a){let b=[...a].sort((x,y)=>x-y),n=b.length;return n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2}
+function sd(a){let m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1))}
+function skew(a){let n=a.length,m=mean(a),s=sd(a);return n/((n-1)*(n-2))*a.reduce((q,x)=>q+((x-m)/s)**3,0)}
+function kurt(a){let n=a.length,m=mean(a),s=sd(a),sum=a.reduce((q,x)=>q+((x-m)/s)**4,0);return n*(n+1)/((n-1)*(n-2)*(n-3))*sum-3*(n-1)**2/((n-2)*(n-3))}
+function parseData(t){return t.split(/[\s,;]+/).map(Number).filter(Number.isFinite)}
+function renderTabs(){ $('tabs').innerHTML=batches.map((b,i)=>`<button class="tab ${i===current?'active':''}" onclick="loadBatch(${i})">${b.name}</button>`).join('') }
+function renderSummary(){
+ if(!batchState[current].summary){
+   $('summary').innerHTML=['n','Mean','Median','Std. dev.','Skewness','Kurtosis'].map(x=>`<div class="stat">${x}<b>–</b></div>`).join('');
+   return;
+ }
+ let a=batches[current].data,vals=[a.length,mean(a),median(a),sd(a),skew(a),kurt(a)],labels=['n','Mean','Median','Std. dev.','Skewness','Kurtosis'];
+ $('summary').innerHTML=vals.map((v,i)=>`<div class="stat">${labels[i]}<b>${i===0?v:Number(v).toFixed(3)}</b></div>`).join('');
+}
+function renderDecision(){
+ let d=decisions[current],strip=$('decisionStrip');
+ strip.classList.remove('accepted','rejected');
+ if(d==='accept')strip.classList.add('accepted');
+ if(d==='reject')strip.classList.add('rejected');
+ $('decisionText').textContent=d==='accept'?'Accept batch':d==='reject'?'Reject batch':'No decision yet';
+ document.querySelectorAll('.decision-strip button').forEach(x=>x.classList.toggle('selected',x.dataset.decision===d));
+}
+function loadBatch(i){
+ current=i;renderTabs();let b=batches[i];
+ $('batchTitle').textContent=b.name;
+ $('sampleText').textContent=b.data.map(x=>x.toFixed(2)).join(', ');
+ $('sigma').value=batchState[i].sigma;
+ renderSummary();renderDecision();updateTruth();
+ if(batchState[i].sigma){drawPlot()}else{
+   $('equation').textContent='X̄ ~ N(8.00, (? / √15)²)';
+   $('plotWrap').innerHTML='<div class="blank">Enter a value for σ to draw the sampling distribution and significance regions.</div>';
+ }
+ $('status').textContent='';
+}
+$('summarise').onclick=()=>{batchState[current].summary=true;let a=batches[current].data;let vals=[a.length,mean(a),median(a),sd(a),skew(a),kurt(a)];let labels=['n','Mean','Median','Std. dev.','Skewness','Kurtosis'];$('summary').innerHTML=vals.map((v,i)=>`<div class="stat">${labels[i]}<b>${i===0?v:Number(v).toFixed(3)}</b></div>`).join('')}
+document.querySelectorAll('.decision-strip button').forEach(btn=>btn.onclick=()=>{decisions[current]=btn.dataset.decision;renderDecision()})
+$('sigma').addEventListener('input',()=>{batchState[current].sigma=$('sigma').value;drawPlot()});
+$('revealBtn').onclick=()=>{
+ const entered=$('revealPassword').value.trim().toLowerCase();
+ if(entered!=='student'){
+   $('revealMessage').textContent='Not yet.';
+   return;
+ }
+ truthRevealed=true;
+ $('revealMessage').textContent='True distributions unlocked.';
+ updateTruth();
+ drawPlot();
+};
+$('revealPassword').addEventListener('keydown',e=>{if(e.key==='Enter')$('revealBtn').click()});
+function updateTruth(){
+ const box=$('truth');
+ if(!truthRevealed){box.style.display='none';box.innerHTML='';return}
+ const b=batches[current],se=b.trueSigma/Math.sqrt(15),lo=8-1.959964*se,hi=8+1.959964*se,xbar=mean(b.data);
+ const correct=(xbar<lo||xbar>hi)?'Reject batch':'Accept batch';
+ if(correct === 'Reject batch'){
+    box.style.background = '#fff5f5';
+    box.style.borderLeftColor = '#c93a43';
+ } else {
+    box.style.background = '#f0fff4';
+    box.style.borderLeftColor = '#2f855a';
+ }
+ box.style.display='block';
+ box.innerHTML=`<b>True population:</b> μ = 8.000%, σ = ${b.trueSigma.toFixed(3)}%. `+
+ `<b>True Normal critical values:</b> ${lo.toFixed(3)}% and ${hi.toFixed(3)}%. `+
+ `<b>Using this Normal model:</b> ${correct}.`;
+}
+function normalPdf(x,m,s){return Math.exp(-0.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI))}
+function drawPlot(){let sig=Number($('sigma').value);if(!(sig>0)){return}let mu=8,n=15,se=sig/Math.sqrt(n),lo=mu-1.959964*se,hi=mu+1.959964*se;$('equation').innerHTML=`X̄ ~ N(8.00, (${sig.toFixed(3)} / √15)²) &nbsp;&nbsp; SE = ${se.toFixed(3)}`;
+ $('plotWrap').innerHTML='<canvas id="plot"></canvas>';let cv=$('plot'),dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;let c=cv.getContext('2d');c.scale(dpr,dpr);let xmin=mu-4.2*se,xmax=mu+4.2*se,top=24,bottom=h-48,left=45,right=w-20,ymax=normalPdf(mu,mu,se)*1.12;let X=x=>left+(x-xmin)/(xmax-xmin)*(right-left),Y=y=>bottom-y/ymax*(bottom-top);
+ c.fillStyle='#fde8ea';c.fillRect(left,top,X(lo)-left,bottom-top);c.fillRect(X(hi),top,right-X(hi),bottom-top);c.strokeStyle='#89949c';c.lineWidth=1;c.beginPath();c.moveTo(left,bottom);c.lineTo(right,bottom);c.stroke();c.strokeStyle='#1769aa';c.lineWidth=3;c.beginPath();for(let j=0;j<=400;j++){let x=xmin+(xmax-xmin)*j/400,y=normalPdf(x,mu,se);j?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y))}c.stroke();
+ function vline(x,col,width=2){c.strokeStyle=col;c.lineWidth=width;c.setLineDash(width===2?[6,4]:[]);c.beginPath();c.moveTo(X(x),top);c.lineTo(X(x),bottom);c.stroke();c.setLineDash([])}vline(lo,'#c93a43');vline(hi,'#c93a43');
+ c.font='12px Arial';c.textAlign='center';c.fillStyle='#a12830';c.fillText(lo.toFixed(3),X(lo),bottom+18);c.fillText(hi.toFixed(3),X(hi),bottom+18);c.fillStyle='#a12830';c.font='12px Arial';c.fillText('2.5%',(left+X(lo))/2,top+18);c.fillText('2.5%',(X(hi)+right)/2,top+18);if(truthRevealed){
+ let ts=batches[current].trueSigma/Math.sqrt(15),tlo=mu-1.959964*ts,thi=mu+1.959964*ts;
+ c.strokeStyle='#2f855a';c.lineWidth=3;c.setLineDash([8,4]);c.beginPath();
+ for(let j=0;j<=400;j++){let x=xmin+(xmax-xmin)*j/400,y=normalPdf(x,mu,ts);j?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y))}c.stroke();c.setLineDash([]);
+ c.strokeStyle='#2f855a';c.lineWidth=2;[tlo,thi].forEach(x=>{c.beginPath();c.moveTo(X(x),top);c.lineTo(X(x),bottom);c.stroke()});
+ c.fillStyle='#2f855a';c.font='bold 12px Arial';c.fillText(`true: ${tlo.toFixed(3)}`,X(tlo),bottom+34);c.fillText(`true: ${thi.toFixed(3)}`,X(thi),bottom+34);
+}}
+loadBatch(0);
+</script></body></html>
